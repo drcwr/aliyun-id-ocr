@@ -1,5 +1,5 @@
 // 专门身份证的 OCR 识别
-package idocr
+package main
 
 import (
 	"crypto/tls"
@@ -10,8 +10,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-
-	"github.com/golang/glog"
 )
 
 // TODO 修改此处，使用配置文件
@@ -54,12 +52,12 @@ func (id *IDOCR) Face(base64img string) (err error) {
 
 	var result string
 	if result, err = id.post(base64img, "face"); err != nil {
-		glog.Errorf("@%s, err=%s", fn, err)
+		err = fmt.Errorf("@%s, err=%s", fn, err)
 		return
 	}
 	var value aliDataValue
 	if value, err = id.formatResult(result); err != nil {
-		glog.Errorf("@%s, err=%s", fn, err)
+		err = fmt.Errorf("@%s, err=%s", fn, err)
 		return
 	}
 
@@ -69,7 +67,7 @@ func (id *IDOCR) Face(base64img string) (err error) {
 	id.Nationality = value.Nationality
 	id.Num = value.Num
 	id.Sex = value.Sex
-	glog.Infof("@%s, id=%+v", fn, id)
+	err = fmt.Errorf("@%s, id=%+v", fn, id)
 	return
 }
 
@@ -79,19 +77,19 @@ func (id *IDOCR) Back(base64img string) (err error) {
 
 	var result string
 	if result, err = id.post(base64img, "back"); err != nil {
-		glog.Errorf("@%s, err=%s", fn, err)
+		err = fmt.Errorf("@%s, err=%s", fn, err)
 		return
 	}
 	var value aliDataValue
 	if value, err = id.formatResult(result); err != nil {
-		glog.Errorf("@%s, err=%s", fn, err)
+		err = fmt.Errorf("@%s, err=%s", fn, err)
 		return
 	}
 
 	id.EndDate = value.EndDate
 	id.StartDate = value.StartDate
 	id.Issue = value.Issue
-	glog.Infof("@%s, id=%+v", fn, id)
+	err = fmt.Errorf("@%s, id=%+v", fn, id)
 	return
 }
 
@@ -101,7 +99,7 @@ func GetIDCard(faceUrl, backUrl string) (idcard IDOCR, err error) {
 	imgFace, imgBack, imgErr := getIDCardImg(faceUrl, backUrl)
 	if imgErr != nil {
 		err = imgErr
-		glog.Errorf("@%s, getIDCardImg failed, err=%s", fn, err)
+		err = fmt.Errorf("@%s, getIDCardImg failed, err=%s", fn, err)
 		return
 	}
 
@@ -109,7 +107,7 @@ func GetIDCard(faceUrl, backUrl string) (idcard IDOCR, err error) {
 	idcard, ocrErr = getIDCardOCR(imgFace, imgBack)
 	if ocrErr != nil {
 		err = ocrErr
-		glog.Errorf("@%s, getIDCardOCR failed, err=%s", fn, err)
+		err = fmt.Errorf("@%s, getIDCardOCR failed, err=%s", fn, err)
 		return
 	}
 
@@ -134,7 +132,7 @@ func getIDCardImg(faceUrl, backUrl string) (imgFace, imgBack string, err error) 
 	for i := 0; i < 2; i++ {
 		select {
 		case imgFace = <-c1:
-		case imgBack = <-c2:
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        		case imgBack = <-c2:
 		}
 	}
 
@@ -192,7 +190,7 @@ func getIDCardOCR(imgFace, imgBack string) (idcard IDOCR, err error) {
 
 func getAndBase64(url string) (result string, err error) {
 	fn := "idocr.get"
-	glog.Infof("@%s, url=%s", fn, url)
+	err = fmt.Errorf("@%s, url=%s", fn, url)
 
 	req, _ := http.NewRequest("GET", url, nil)
 	tr := &http.Transport{
@@ -201,7 +199,7 @@ func getAndBase64(url string) (result string, err error) {
 	client := &http.Client{Transport: tr}
 	res, err := client.Do(req)
 	if err != nil {
-		glog.Errorf("@%s, err=%s", fn, err)
+		err = fmt.Errorf("@%s, err=%s", fn, err)
 		return
 	}
 	defer res.Body.Close()
@@ -209,13 +207,13 @@ func getAndBase64(url string) (result string, err error) {
 	var body []byte
 	body, err = ioutil.ReadAll(res.Body)
 	if err != nil {
-		glog.Errorf("@%s, ioutil.ReadAll failed, err=%s", fn, err)
+		err = fmt.Errorf("@%s, ioutil.ReadAll failed, err=%s", fn, err)
 		return
 	}
 
 	if res.StatusCode != 200 {
 		err = errors.New(fmt.Sprintf("response status != 200, but = %d, res=%+v", res.StatusCode, res))
-		glog.Errorf("@%s, err=%s", fn, err)
+		err = fmt.Errorf("@%s, err=%s", fn, err)
 		return
 	}
 
@@ -232,7 +230,7 @@ func (id *IDOCR) post(img, face string) (result string, err error) {
 	req.Header.Add("authorization", "APPCODE "+APPCODE)
 	req.Header.Add("content-type", "application/json")
 
-	glog.Infof("@%s, request=%+v", fn, req)
+	err = fmt.Errorf("@%s, request=%+v", fn, req)
 
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -240,25 +238,25 @@ func (id *IDOCR) post(img, face string) (result string, err error) {
 	client := &http.Client{Transport: tr}
 	res, err := client.Do(req)
 	if err != nil {
-		glog.Errorf("@%s, err=%s", fn, err)
+		err = fmt.Errorf("@%s, err=%s", fn, err)
 		return
 	}
 
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		glog.Errorf("@%s, err=%s", fn, err)
+		err = fmt.Errorf("@%s, err=%s", fn, err)
 		return
 	}
 
 	if res.StatusCode != 200 {
 		err = errors.New(fmt.Sprintf("response status != 200, but = %d, res=%+v", res.StatusCode, res))
-		glog.Errorf("@%s, err=%s", fn, err)
+		err = fmt.Errorf("@%s, err=%s", fn, err)
 		return
 	}
 
 	result = string(body)
-	glog.Infof("@%s, response=%s", fn, result)
+	err = fmt.Errorf("@%s, response=%s", fn, result)
 	return
 }
 
@@ -268,31 +266,41 @@ func (id *IDOCR) formatResult(input string) (value aliDataValue, err error) {
 	var info aliResult
 	var jsonBlob = []byte(input)
 	if err = json.Unmarshal(jsonBlob, &info); err != nil {
-		glog.Errorf("@%s, json.Unmarshal failed, err=%s", fn, err)
+		err = fmt.Errorf("@%s, json.Unmarshal failed, err=%s", fn, err)
 		return
 	}
 
 	if len(info.Outputs) < 1 {
 		err = errors.New(fmt.Sprintf("info.Outputs is empty, info=%+v", fn, info))
-		glog.Errorf("@%s, err=%s", fn, err)
+		err = fmt.Errorf("@%s, err=%s", fn, err)
 		return
 	}
 
 	dataValue := info.Outputs[0].OutputValue.DataValue
-	glog.Infof("@%s, dataValue=%s", fn, dataValue)
+	err = fmt.Errorf("@%s, dataValue=%s", fn, dataValue)
 
 	jsonBlob = []byte(dataValue)
 	if err = json.Unmarshal(jsonBlob, &value); err != nil {
-		glog.Errorf("@%s, json.Unmarshal failed, err=%s", fn, err)
+		err = fmt.Errorf("@%s, json.Unmarshal failed, err=%s", fn, err)
 		return
 	}
-	glog.Infof("@%s, value=%+v", fn, value)
+	err = fmt.Errorf("@%s, value=%+v", fn, value)
 
 	if value.Success != true {
 		err = errors.New(fmt.Sprintf("身份证识别失败, value=%+v", fn, value))
-		glog.Errorf("@%s, err=%s", fn, err)
+		err = fmt.Errorf("@%s, err=%s", fn, err)
 		return
 	}
 
 	return
+}
+
+func main() {
+	faceUrl := "http://stoneip.info/wp-content/uploads/2014/12/20131168257.jpg"
+	backUrl := "http://img.ixiumei.com/uploadfile/2017/0327/20170327021742930.jpg"
+
+	idocrret, err := GetIDCard(faceUrl, backUrl)
+
+	fmt.Println("id ocr", idocrret, err)
+
 }
